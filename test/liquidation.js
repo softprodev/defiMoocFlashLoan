@@ -6,8 +6,6 @@ const {resolve} = require("path")
 const {config} = require("dotenv")
 dotenvConfig = config
 dotenvConfig({ path: resolve(__dirname, "../.env") });
-console.log("ERE")
-console.log(process.env.ALCHE_API)
 
 describe("Liquidation", function () {
   it("test", async function () {
