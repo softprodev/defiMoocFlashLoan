@@ -136,8 +136,18 @@ contract LiquidationOperator is IUniswapV2Callee {
     uint8 public constant health_factor_decimals = 18;
 
     // TODO: define constants used in the contract including ERC-20 tokens, Uniswap Pairs, Aave lending pools, etc. */
-    //    *** Your code here ***
+    address public constant userToLiquidate = 0x59CE4a2AC5bC3f5F225439B2993b86B42f6d3e9F;
+    address public constant usdtAddr = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+    address public constant wbtcAddr = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+    address public constant wethAddr = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant uniswapV2 = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
+    address public owner;
     // END TODO
+
+    modifier onlyOwner {
+        require(msg.sender == owner, "ERROR: Operate can only be called by the contract owner");
+        _;
+    }
 
     // some helper function, it is totally fine if you can finish the lab without using these function
     // https://github.com/Uniswap/v2-periphery/blob/master/contracts/libraries/UniswapV2Library.sol
@@ -179,16 +189,15 @@ contract LiquidationOperator is IUniswapV2Callee {
 
     constructor() {
         // TODO: (optional) initialize your contract
-        //   *** Your code here ***
+        owner = msg.sender;
         // END TODO
     }
 
     // TODO: add a `receive` function so that you can withdraw your WETH
-    //   *** Your code here ***
-    // END TODO
+    receive() external payable {}
 
     // required by the testing script, entry for your liquidation call
-    function operate() external {
+    function operate() onlyOwner external {
         // TODO: implement your liquidation logic
 
         // 0. security checks and initializing variables
