@@ -2,6 +2,12 @@ const { expect } = require("chai");
 const { network, ethers } = require("hardhat");
 const { BigNumber, utils }  = require("ethers");
 const { writeFile } = require('fs');
+const {resolve} = require("path")
+const {config} = require("dotenv")
+dotenvConfig = config
+dotenvConfig({ path: resolve(__dirname, "../.env") });
+console.log("ERE")
+console.log(process.env.ALCHE_API)
 
 describe("Liquidation", function () {
   it("test", async function () {
