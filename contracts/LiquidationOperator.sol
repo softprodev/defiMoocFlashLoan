@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.7;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 // ----------------------INTERFACE------------------------------
 
@@ -143,6 +143,10 @@ contract LiquidationOperator is IUniswapV2Callee {
     address public constant uniswapV2FactoryAddr = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
     address public constant aaveLendingPoolAddr = 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9;
     address public owner;
+    uint8 public constant usdtDecimals = 6;
+    uint8 public constant wbtcDecimals = 8;
+    uint8 public constant wethDecimals = 18;
+
     
     // --- Hardcoded liquidation parameters ---- //
     uint public constant usdtToBorrow = 2916378221684;
@@ -241,7 +245,7 @@ contract LiquidationOperator is IUniswapV2Callee {
     function uniswapV2Call(
         address,
         uint256,
-        uint256 amount1,
+        uint256 usdtFlashSwapped,
         bytes calldata
     ) external override {
         // TODO: implement your liquidation logic
@@ -251,9 +255,14 @@ contract LiquidationOperator is IUniswapV2Callee {
         //    *** Your code here ***
 
         // 2.1 liquidate the target user
-        console.log("The address of wbtc is %d\n",wbtc.balanceOf(address(this)));
+        IERC20 usdt = IERC20(usdtAddr);
+        // console.log("The amount of usdt is %d\n", usdt.balanceOf(address(this)) / 10 ** usdtDecimals );
+        // console.log("The amount of usdt is %d\n", usdt.balanceOf(address(this)) );
+        // console.log("The amount of usdt is %d\n", usdtFlashSwapped );
         ILendingPool aaveLendingPool = ILendingPool(aaveLendingPoolAddr);
-        aaveLendingPool.liquidationCall(wbtcAddr, usdtAddr, userToLiquidate, usdtToBorrow, false);
+        // We need to approve Aave to spend our usdt
+        usdt.approve(aaveLendingPoolAddr, usdtFlashSwapped);
+        aaveLendingPool.liquidationCall(wbtcAddr, usdtAddr, userToLiquidate, usdtFlashSwapped, false);
 
         // 2.2 swap WBTC for other things or repay directly
         IERC20 wbtc = IERC20(wbtcAddr);
