@@ -236,7 +236,7 @@ contract LiquidationOperator is IUniswapV2Callee {
         IWETH weth = IWETH(wethAddr);
         weth.withdraw(weth.balanceOf(address(this)));
         console.log("The amount of ETH in our contract is %d\n", address(this).balance);
-        payable(msg.sender).send(address(this).balance);
+        payable(msg.sender).transfer(address(this).balance);
         console.log("The NEW amount of ETH in our contract is %d\n", address(this).balance);
 
         // END TODO
