@@ -140,9 +140,13 @@ contract LiquidationOperator is IUniswapV2Callee {
     address public constant usdtAddr = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address public constant wbtcAddr = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
     address public constant wethAddr = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address public constant uniswapV2 = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
+    address public constant uniswapV2FactoryAddr = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
+    address public constant aaveLendingPoolAddr = 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9;
     address public owner;
-    // END TODO
+    
+    // --- Hardcoded liquidation parameters ---- //
+    uint public constant usdtToBorrow = 2916378221684;
+
 
     modifier onlyOwner {
         require(msg.sender == owner, "ERROR: Operate can only be called by the contract owner");
@@ -190,7 +194,6 @@ contract LiquidationOperator is IUniswapV2Callee {
     constructor() {
         // TODO: (optional) initialize your contract
         owner = msg.sender;
-        // END TODO
     }
 
     // TODO: add a `receive` function so that you can withdraw your WETH
@@ -204,14 +207,29 @@ contract LiquidationOperator is IUniswapV2Callee {
         //    *** Your code here ***
 
         // 1. get the target user account data & make sure it is liquidatable
-        //    *** Your code here ***
+        ILendingPool aaveLendingPool = ILendingPool(aaveLendingPoolAddr);
+        uint256 healthFactor;
+        (, , , , , healthFactor) = aaveLendingPool.getUserAccountData(userToLiquidate);
+        // Ensure that liqudation is possible
+        require(healthFactor / 10 ** health_factor_decimals == 0, "User is not liquidatable");
 
         // 2. call flash swap to liquidate the target user
         // based on https://etherscan.io/tx/0xac7df37a43fab1b130318bbb761861b8357650db2e2c6493b73d6da3d9581077
         // we know that the target user borrowed USDT with WBTC as collateral
         // we should borrow USDT, liquidate the target user and get the WBTC, then swap WBTC to repay uniswap
         // (please feel free to develop other workflows as long as they liquidate the target user successfully)
-        //    *** Your code here ***
+        // We want to borrow USDT from the Uniswap V2 USDT/WETH pair
+        IUniswapV2Factory uniswapV2Factory = IUniswapV2Factory(uniswapV2FactoryAddr);
+        address wethUsdtPairAddr = uniswapV2Factory.getPair(wethAddr, usdtAddr);
+        IUniswapV2Pair wethUsdtPair = IUniswapV2Pair(wethUsdtPairAddr);
+        (uint112 wethReserve, uint112 usdtReserve,) = wethUsdtPair.getReserves();
+
+        // So now, we can go ahead and take out a flash loan for the desired amount of USDT
+        wethUsdtPair.swap(0, usdtToBorrow, address(this), abi.encode("flash loan"));
+        // Now program execution switches to uniswapV2Call
+        // Below this line, we are assuming that UniswapV2Call and the swap (function) have executed
+
+
 
         // 3. Convert the profit into ETH and send back to sender
         //    *** Your code here ***
@@ -227,15 +245,18 @@ contract LiquidationOperator is IUniswapV2Callee {
         bytes calldata
     ) external override {
         // TODO: implement your liquidation logic
+        // In this function, we can assume that we have been given the desired amount of USDT
 
         // 2.0. security checks and initializing variables
         //    *** Your code here ***
 
         // 2.1 liquidate the target user
-        //    *** Your code here ***
+        console.log("The address of wbtc is %d\n",wbtc.balanceOf(address(this)));
+        ILendingPool aaveLendingPool = ILendingPool(aaveLendingPoolAddr);
+        aaveLendingPool.liquidationCall(wbtcAddr, usdtAddr, userToLiquidate, usdtToBorrow, false);
 
         // 2.2 swap WBTC for other things or repay directly
-        //    *** Your code here ***
+        IERC20 wbtc = IERC20(wbtcAddr);
 
         // 2.3 repay
         //    *** Your code here ***
