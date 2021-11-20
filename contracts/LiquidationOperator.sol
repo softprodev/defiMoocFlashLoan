@@ -142,6 +142,7 @@ contract LiquidationOperator is IUniswapV2Callee {
     address public constant wethAddr = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant uniswapV2FactoryAddr = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
     address public constant aaveLendingPoolAddr = 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9;
+    address public constant wbtcWethSushiSwapPool = 0xCEfF51756c56CeFFCA006cD410B03FFC46dd3a58;
     address public owner;
     uint8 public constant usdtDecimals = 6;
     uint8 public constant wbtcDecimals = 8;
@@ -281,8 +282,8 @@ contract LiquidationOperator is IUniswapV2Callee {
         uint256 balanceOfWbtc = wbtc.balanceOf(address(this));
         console.log("The amount of WBTC is %d\n", wbtc.balanceOf(address(this)) / 10 ** wbtcDecimals);
 
-        // Let's swap all of our WBTC for WETH
-        address wbtcWethPairAddr = uniswapV2Factory.getPair(wbtcAddr, wethAddr);
+        // Let's swap all of our WBTC for WETH using Sushiswap (deeper liquidity is available)
+        address wbtcWethPairAddr = wbtcWethSushiSwapPool;
         IUniswapV2Pair wbtcWethPair = IUniswapV2Pair(wbtcWethPairAddr);
         // wbtc.approve(wbtcWethPairAddr, balanceOfWbtc);
         wbtc.transfer(wbtcWethPairAddr, balanceOfWbtc);
