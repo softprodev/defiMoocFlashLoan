@@ -226,17 +226,18 @@ contract LiquidationOperator is IUniswapV2Callee {
         IUniswapV2Factory uniswapV2Factory = IUniswapV2Factory(uniswapV2FactoryAddr);
         address wethUsdtPairAddr = uniswapV2Factory.getPair(wethAddr, usdtAddr);
         IUniswapV2Pair wethUsdtPair = IUniswapV2Pair(wethUsdtPairAddr);
-        (uint112 wethReserve, uint112 usdtReserve,) = wethUsdtPair.getReserves();
 
         // So now, we can go ahead and take out a flash loan for the desired amount of USDT
         wethUsdtPair.swap(0, usdtToBorrow, address(this), abi.encode("flash loan"));
         // Now program execution switches to uniswapV2Call
         // Below this line, we are assuming that UniswapV2Call and the swap (function) have executed
 
-
-
         // 3. Convert the profit into ETH and send back to sender
-        //    *** Your code here ***
+        IWETH weth = IWETH(wethAddr);
+        weth.withdraw(weth.balanceOf(address(this)));
+        console.log("The amount of ETH in our contract is %d\n", address(this).balance);
+        payable(msg.sender).send(address(this).balance);
+        console.log("The NEW amount of ETH in our contract is %d\n", address(this).balance);
 
         // END TODO
     }
