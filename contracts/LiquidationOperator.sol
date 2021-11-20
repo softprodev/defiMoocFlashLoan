@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.7;
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 // ----------------------INTERFACE------------------------------
 
@@ -255,6 +255,7 @@ contract LiquidationOperator is IUniswapV2Callee {
         //    *** Your code here ***
 
         // 2.1 liquidate the target user
+        {
         IERC20 usdt = IERC20(usdtAddr);
         // console.log("The amount of usdt is %d\n", usdt.balanceOf(address(this)) / 10 ** usdtDecimals );
         // console.log("The amount of usdt is %d\n", usdt.balanceOf(address(this)) );
@@ -263,13 +264,44 @@ contract LiquidationOperator is IUniswapV2Callee {
         // We need to approve Aave to spend our usdt
         usdt.approve(aaveLendingPoolAddr, usdtFlashSwapped);
         aaveLendingPool.liquidationCall(wbtcAddr, usdtAddr, userToLiquidate, usdtFlashSwapped, false);
+        }
+
+        // --- Common vars for 2.2, 2.3 --- //
+        IUniswapV2Factory uniswapV2Factory = IUniswapV2Factory(uniswapV2FactoryAddr);
+        uint112 wethReserve;
+        uint112 wbtcReserve;
+        uint112 usdtReserve;
+        IERC20 weth = IERC20(wethAddr);
 
         // 2.2 swap WBTC for other things or repay directly
+        // So at this point we have our WBTC and we want to swap it for WETH
+        {
         IERC20 wbtc = IERC20(wbtcAddr);
+        uint256 balanceOfWbtc = wbtc.balanceOf(address(this));
+        console.log("The amount of WBTC is %d\n", wbtc.balanceOf(address(this)) / 10 ** wbtcDecimals);
+
+        // Let's swap all of our WBTC for WETH
+        address wbtcWethPairAddr = uniswapV2Factory.getPair(wbtcAddr, wethAddr);
+        IUniswapV2Pair wbtcWethPair = IUniswapV2Pair(wbtcWethPairAddr);
+        // wbtc.approve(wbtcWethPairAddr, balanceOfWbtc);
+        wbtc.transfer(wbtcWethPairAddr, balanceOfWbtc);
+
+        // How much WETH should we expect out?
+        (wbtcReserve, wethReserve,) = wbtcWethPair.getReserves();
+        uint256 wethToExepctToReceive = getAmountOut(balanceOfWbtc, wbtcReserve, wethReserve);
+        
+        wbtcWethPair.swap(0, wethToExepctToReceive, address(this), "");
+        // Let's check how much WETH we now have
+        console.log("The amount of WETH is %d\n", weth.balanceOf(address(this)) / 10 ** wethDecimals);
+        }
 
         // 2.3 repay
-        //    *** Your code here ***
-        
-        // END TODO
+        // Well, how much WETH do we need to give back in the pool in order to maintain the invariant x*y=k?
+        address wethUsdtPairAddr = uniswapV2Factory.getPair(wethAddr, usdtAddr);
+        IUniswapV2Pair wethUsdtPair = IUniswapV2Pair(wethUsdtPairAddr);
+        (wethReserve, usdtReserve,) = wethUsdtPair.getReserves();
+        uint256 wethToPayBack = getAmountIn(usdtFlashSwapped, wethReserve, usdtReserve);
+        weth.transfer(wethUsdtPairAddr, wethToPayBack);
+        console.log("The new amount of WETH is %d\n", weth.balanceOf(address(this)) / 10 ** wethDecimals);
     }
 }
