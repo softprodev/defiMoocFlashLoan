@@ -206,9 +206,9 @@ contract LiquidationOperator is IUniswapV2Callee {
 
     /**
      * @param _amountToSell the amount of token to sell into the Curve pool
-     * Note that this assumes we are operating in a Curve pool 
+     * Note that this assumes we are operating in a Curve pool
      */
-    function _getMinAmountOfTokenAfterSwap(uint256 _amountToSell) public view returns(uint256) {
+    function _getMinAmountOfTokenAfterSwap(uint256 _amountToSell) public pure returns(uint256) {
         // 1% max slippage (in basis points)
         uint _maxSlippage = 100;
         uint256 maxSlippage = _amountToSell * _maxSlippage / 10000;
